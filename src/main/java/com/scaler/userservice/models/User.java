@@ -1,6 +1,7 @@
 package com.scaler.userservice.models;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToMany;
 
 import java.util.List;
@@ -11,7 +12,7 @@ public class User extends BaseModel {
     private String email;
     private String hashedPassword;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     private List<Role> roles;
 
     public String getName() {
