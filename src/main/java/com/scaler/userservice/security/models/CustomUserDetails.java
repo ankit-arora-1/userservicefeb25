@@ -1,6 +1,7 @@
 package com.scaler.userservice.security.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.scaler.userservice.models.Role;
 import com.scaler.userservice.models.User;
 import org.springframework.security.core.GrantedAuthority;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+@JsonDeserialize
 public class CustomUserDetails implements UserDetails {
     private String password;
     private String username;
@@ -18,6 +20,8 @@ public class CustomUserDetails implements UserDetails {
     private boolean credentialsNonExpired;
     private boolean enabled;
     private List<GrantedAuthority> authorities;
+
+    public CustomUserDetails() {}
 
     public CustomUserDetails(User user) {
         this.password = user.getHashedPassword();
