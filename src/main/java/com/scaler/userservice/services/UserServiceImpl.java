@@ -1,10 +1,14 @@
 package com.scaler.userservice.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scaler.userservice.dtos.SendEmailDto;
 import com.scaler.userservice.models.Token;
 import com.scaler.userservice.models.User;
 import com.scaler.userservice.repositories.TokenRepository;
 import com.scaler.userservice.repositories.UserRepository;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,13 +22,18 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
     private TokenRepository tokenRepository;
     private BCryptPasswordEncoder bCryptPasswordEncoder;
+    private KafkaTemplate<String, String> kafkaTemplate;
+    private ObjectMapper objectMapper;
 
     public UserServiceImpl(UserRepository userRepository,
                            TokenRepository tokenRepository,
-                           BCryptPasswordEncoder bCryptPasswordEncoder) {
+                           BCryptPasswordEncoder bCryptPasswordEncoder,
+                           KafkaTemplate kafkaTemplate) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+        this.kafkaTemplate = kafkaTemplate;
+        this.objectMapper = new ObjectMapper();
     }
 
     @Override
@@ -62,11 +71,30 @@ public class UserServiceImpl implements UserService {
         user.setEmail(email);
         user.setHashedPassword(bCryptPasswordEncoder.encode(password));
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        SendEmailDto sendEmailDto = new SendEmailDto();
+        sendEmailDto.setFrom("arora.ankit7@gmail.com");
+        sendEmailDto.setTo(user.getEmail());
+        sendEmailDto.setSubject("Welcome");
+        sendEmailDto.setBody("Welcome Welcome Welcome");
+
+        String sendEmailDtoString = null;
+        try {
+            sendEmailDtoString = objectMapper
+                    .writeValueAsString(sendEmailDto);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        kafkaTemplate.send("sendEmail", sendEmailDtoString);
+
+        return savedUser;
     }
 
     @Override
     public User validateToken(String tokenValue) {
+        System.out.println("Calling this server");
         Optional<Token> tokenOptional = tokenRepository
                 .findByValueAndDeletedAndExpiryGreaterThan(tokenValue,
                        false,
